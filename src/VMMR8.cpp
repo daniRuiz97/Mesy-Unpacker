@@ -92,7 +92,7 @@ void readData(ifstream *f) override {
       unsigned int bus = vmmr8_data[3] & 0b00001111; // Bus (optical link) number
       
             
-      if ((channel >=0) && (channel <= 47) ){
+      if ((channel >=0) && (channel <= 63) ){
         // For the root branches
         VMMR8_Channel[VMMR8_Multiplicity] = channel;
         VMMR_Value[VMMR8_Multiplicity] = value;
