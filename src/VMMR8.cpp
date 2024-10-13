@@ -89,10 +89,10 @@ void readData(ifstream *f) override {
       //VMMR8_Multiplicity=0;      
       unsigned long channel = (vmmr8_data[1] >> 4) + (vmmr8_data[2] << 4); // Channel number
       unsigned long value = ( vmmr8_data[0] + (vmmr8_data[1] << 8) ) & 0b0000111111111111; // Value in the channel
-      unsigned int bus = vmmr8_data[3] & 0b00001111; // Bus (optical link) number
+      Int_t bus = vmmr8_data[3] & 0b00001111; // Bus (optical link) number
       
             
-      if ((channel >=0) && (channel <= 63) ){
+      if ((channel >=0) && (channel <= 63) && (0 <= bus ) && (bus <= 8) && (VMMR8_Multiplicity< 64)  ){
         // For the root branches
         VMMR8_Channel[VMMR8_Multiplicity] = channel;
         VMMR_Value[VMMR8_Multiplicity] = value;
@@ -101,7 +101,10 @@ void readData(ifstream *f) override {
         // Control histogram
         VMMR8_histo[bus][channel]->Fill(value);
         VMMR8_Multiplicity++;
+
+        
       }
+      //if (64<VMMR8_Multiplicity) cout<< "HOwOla multi "<< VMMR8_Multiplicity  <<" Ch " << channel << " Buss "<< bus <<endl; 
     }
   } // != 0
   
