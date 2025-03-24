@@ -65,20 +65,24 @@ def moduleDetector(file_path):
     hex_patterns = [
         "6d64707033325f736370", # MPDDP32_scp 
         "6d64707031365f716463", # MPDDP16_qdc
+        "6d64707031365f736370", # MPDDP16_scp
         "766d6d72",  # vmmr
         "6D6164633332",  # madc32
         "6361656E5F76373835",  # caen_v785
         "6D766C635F6576656E745F7374616D706572", # mvlc_stamper
+        "6D766C635F7473" # mvlc_ts,
         ]
 
     #Create a dictionary for the good modules
     dic_hex_patterns={
         "mdpp32_scp":hex_patterns[0],
         "mdpp16_qdc": hex_patterns[1],
-        "vmmr": hex_patterns[2],
-        "madc32": hex_patterns[3],
-        "caen_v785": hex_patterns[4],
-        "mvlc_event_stamper": hex_patterns[5]
+        "mdpp16_scp": hex_patterns[2],
+        "vmmr": hex_patterns[3],
+        "madc32": hex_patterns[4],
+        "caen_v785": hex_patterns[5],
+        "mvlc_event_stamper": hex_patterns[6],
+        "mvlc_ts":hex_patterns[7]
         }
     
     claves = dic_hex_patterns.keys() 
@@ -106,8 +110,9 @@ def moduleDetector(file_path):
 
                     print("Module type: ", type_module, " ,with name: ",name_module)
                     dic_modules_detected.append((name_module,type_module))
-
-                # Actualize the type index
+                else :
+                 print("Unknown module: ", type_module)
+                # Actualize  the type index
                 previous_type_index=type_index
                 type_index = binary_data.find(binascii.unhexlify(patron_event),type_index+1)
         
@@ -204,9 +209,9 @@ if __name__ == "__main__":
         mlvclst_path   = sys.argv[1] # Mesytec file
         config_file    = sys.argv[2] # Config file
         RootFile_path  = sys.argv[3] # Output file
-        cpp_executable_path = "./Unpack_mvme.out"  # Replace with the actual path
+        cpp_executable_path = "./Unpack_mvme.out"  
 
-        # Obarin numbre of events
+        # Obatin numbre of events
         events=counterNumberEvents(mlvclst_path)
         print("Events: ",events)
 
