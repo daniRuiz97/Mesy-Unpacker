@@ -9,6 +9,7 @@ using std::ifstream;
 
 class ModuleFather {
 public:
+    int acarreo=0;
     virtual void read(ifstream *f,Int_t &broken_event_count)=0;
     virtual void readData(ifstream *f)=0;
     virtual void write(Int_t &broken_event_count)=0;
