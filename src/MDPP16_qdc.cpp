@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Daughter class to translate data from a MDPP16 module:                                                                          //
+// Daughter class to translate data from a MDPP16_qdc module:                                                                          //
 //                                                                                                                                 //
 // Inherits structure from the ModuleFather.h                                                                                      //
 //  Internal methods designed for the MDPP16 modules (info:https://www.mesytec.com/products/datasheets/MDPP-16_SCP-RCP.pdf page 10) //                                                                      
@@ -163,7 +163,7 @@ unsigned char mdpp16_qdc_data[4];
         MDPP16_1_Trigger_time_diff_Channel[MDPP16_1_Trigger_time_diff_mul] = channel-32;
         MDPP16_1_Trigger_time_diff_Value[MDPP16_1_Trigger_time_diff_mul] = value;
         MDPP16_1_Trigger_time_diff_mul++;
-        cout<<"Time stamp "<< value<< endl;
+        //cout<<"Time stamp "<< value<< endl;
         if(MDPP16_1_Trigger_time_diff_mul > 16-1){MDPP16_1_Trigger_time_diff_mul = 16-1;}
       }
     
@@ -218,9 +218,6 @@ void read(ifstream *f, Int_t &broken_event_count) override {
    //cout << "moduloID: " << moduloID <<endl;
   //}
   //cout<<"--------------"<<endl;
-  if(module_event_length<7){
-    cout<<module_event_length<<endl;
-  }
     for (int i=0; i < module_event_length; i++) {
     //  for (int i=0; i <module_header_length; i++) {
       //  if(longitud!=longitudEventoAnterior){
