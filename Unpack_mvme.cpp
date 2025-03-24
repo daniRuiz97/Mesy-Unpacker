@@ -5,8 +5,6 @@
 #include <vector>
 #include <stdio.h>
 
-
-
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1D.h"
@@ -18,13 +16,15 @@
 #include <cstdio>
 
 #include "include/ModuleFather.h"
-#include "src/MDPP16.cpp"
+#include "src/MDPP16_qdc.cpp"
+#include "src/MDPP16_scp.cpp"
 #include "src/MDPP32.cpp"
 #include "src/VMMR8.cpp"
 #include "src/Caen785.cpp"
 #include "src/Caen785N.cpp"
 #include "src/MADC32.cpp"
 #include "src/mvlc_event_stamper.cpp"
+#include "src/mvlc_ts.cpp"
 
 #include <nlohmann/json.hpp>
 
@@ -60,7 +60,7 @@ int counterEvent1=0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Code structure:                                                                                                       //
+// Code structure:                                                                                                      //
 //  Part I: Classes used to read the file (specific unpacking routines for each module can be found in the src folder). //
 //  Part II: The main read routine that initializes the objects and calls the reading methods described in Part I.      //
 //                                                                                                                      //
@@ -76,6 +76,8 @@ int counterEvent1=0;
 //                                                                                                                      //
 //To execute:                                                                                                           //
 // ./Unpack_mvme.out                                                                                                    //
+//                                                                                                                      //
+//Compilation and excution automatized in Run_Unpack.sh                                                                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////
@@ -130,7 +132,7 @@ void jumpFrame(ifstream *f, unsigned char frame_header[4],ULong_t &bytes_counter
 {
   // Extract 13 bit number form the last two Bytes (the code is read in little endiang)  
   int words_length = (frame_header[0] + (frame_header[1] << 8) ) & 0b0001111111111111;
-//   cout << "Words to jump " << words_length << endl;
+  //cout << "Words to jump " << words_length << endl;
   if (words_length != 0) {
     f->read(discard, words_length * 4);
   }
@@ -187,6 +189,13 @@ void readFrame(ifstream *f,ULong_t &bytes_counter, Int_t &DATAFRAME_marker, Int_
         if(lower_4_bits==1){
             DATAFRAME_marker = 1;
             counterEvent0++;
+
+             // Move to the next frame
+            int frame_F3_length = (header[0] + (header[1] << 8) ) & 0b0001111111111111;
+        
+            bytes_counter += frame_F3_length * 4; // Move to the next frame
+
+            int auxiliar=0;
             
             // Every F3 contains the F5 of the modules that are sending info.
             // The order in which the modules send information (ie the order of the F5) is always the same (set by user when setting UP the DAQ)
@@ -197,27 +206,29 @@ void readFrame(ifstream *f,ULong_t &bytes_counter, Int_t &DATAFRAME_marker, Int_
                 array[i]->initEvent();
                 if(array[i]->implemented){
                     array[i]->read(f,broken_event_count);
+                    auxiliar=array[i]->acarreo+auxiliar;
+                
                 }else{
+                    /*
+                    cout << "Hola" <<endl;
                     unsigned char block_read_header[4];
                     f->read((char*) block_read_header, 4);
                     jumpFrame(f, block_read_header,bytes_counter);
+                    */
+                    int salto=frame_F3_length-auxiliar;
+                    f->read(discard, salto * 4);
                 }
 
                 if (totalEvents % 1000000 == 0) {
-            cout << " Events counted: " << totalEvents/1e6 << " millions" << endl;
-            }
+                    cout << " Events counted: " << totalEvents/1e6 << " millions" << endl;
+                }
         
-            if ((header[2] & 0b10000000) == 1){//Check if there is an continue frame
-            cout << "continue frame" << endl;
-            continue_frame_counter += 1;
-            }
+                if ((header[2] & 0b10000000) == 1){//Check if there is an continue frame
+                    cout << "continue frame" << endl;
+                    continue_frame_counter += 1;
+                }
 
-        
-            totalEvents++;
-            // Move to the next frame
-            int frame_F3_length = (header[0] + (header[1] << 8) ) & 0b0001111111111111;
-            bytes_counter += frame_F3_length * 4;
-            
+                totalEvents++;
             }
         }
         else{
@@ -227,6 +238,7 @@ void readFrame(ifstream *f,ULong_t &bytes_counter, Int_t &DATAFRAME_marker, Int_
     }
     
     else if (!frameType){
+      //cout <<(int)  frameType << endl;
       cout << "-- No EOF found so stop reading the file--" << endl;
        
       EOF_MARKER = 1;
@@ -273,15 +285,22 @@ int main(int argc, char* argv[]) {
     bool found = false; //Creo que se puede borrar
     
     // Counter for the numbe of modules of each type, use to build folders, histogrmas and distiughs modules of same type
-    int counter_MDPP16=0;
+    int counter_MDPP16_QDC=0;
+    int counter_MDPP16_SCP=0;
     int counter_MDPP32=0;
     int counter_MADC32=0;
     int counter_VMMR8=0;
     int counter_CAEN789=0;
     int counter_CAEN789N=0;
     int counter_mvlc_event_stamper=0;
+    int counter_mvlc_ts=0;
     int eventCounter=0;
-    
+
+    /*for(size_t i = 0; i < module_events_vector.size(); i++) {
+        cout << module_events_vector[i] << endl;
+    }
+    cout <<"---------------" << endl;*/
+
     //Read the config file and for each module initialise a object of the appropriate class in the correct position
     for (size_t i = 0; i < module_events_vector.size(); i+=3) {
     
@@ -292,21 +311,27 @@ int main(int argc, char* argv[]) {
 
         if (module_events_vector[i+2] == "mdpp16_qdc") {
 
-            arrayTest.push_back(new MDPP16(counter_MDPP16,module_events_vector[i+1],module_events_vector[i]));
-            counter_MDPP16=counter_MDPP16+1;
-            //cout << " mpp16" << endl;
+            arrayTest.push_back(new MDPP16_QDC(counter_MDPP16_QDC,module_events_vector[i+1],module_events_vector[i]));
+            counter_MDPP16_QDC=counter_MDPP16_QDC+1;
+            cout << " mdpp16_qdc" << endl;
+        }
+        else if (module_events_vector[i+2] == "mdpp16_scp") {
+
+            arrayTest.push_back(new MDPP16_SCP(counter_MDPP16_SCP,module_events_vector[i+1],module_events_vector[i]));
+            counter_MDPP16_SCP=counter_MDPP16_SCP+1;
+            cout << " mdpp16_scp" << endl;
         }
         else if(module_events_vector[i+2] == "mdpp32_scp"){
           
             arrayTest.push_back(new MDPP32(counter_MDPP32,module_events_vector[i+1],module_events_vector[i]));
             counter_MDPP32=counter_MDPP32+1;
-            //cout << " mpp32" << endl;
+            cout << " mpp32_scp" << endl;
         }
         else if(module_events_vector[i+2] == "madc32"){
             
            arrayTest.push_back(new MADC32(counter_MADC32,module_events_vector[i+1],module_events_vector[i]));
             counter_MADC32=counter_MADC32+1;
-            //cout << "madc" << endl;
+            cout << "madc" << endl;
         }
         else if(module_events_vector[i+2] == "vmmr"){
 
@@ -317,23 +342,32 @@ int main(int argc, char* argv[]) {
 
             arrayTest.push_back(new Caen785(counter_CAEN789,module_events_vector[i+1],module_events_vector[i]));
             counter_CAEN789=counter_CAEN789+1;
-            //cout << "caen_v785" << endl;
+            cout << "caen_v785" << endl;
         }
         else if(module_events_vector[i+2] == "caen_v785N"){
 
             arrayTest.push_back(new CAEN785N(counter_CAEN789,module_events_vector[i+1],module_events_vector[i]));
             counter_CAEN789N=counter_CAEN789N+1;
-             //cout << "caen_v785N" << endl;
+             cout << "caen_v785N" << endl;
         }
         else if(module_events_vector[i+2] == "mvlc_event_stamper"){
             arrayTest.push_back(new mvlc_event_stamper());
             counter_mvlc_event_stamper=counter_mvlc_event_stamper+1;
+            cout << "mvlc_event_stamper" << endl;
+
+        }
+        else if(module_events_vector[i+2] == "mvlc_ts"){
+            arrayTest.push_back(new mvlc_ts());
+            counter_mvlc_ts=counter_mvlc_ts+1;
+            cout << "mvlc_ts" << endl;
         }
 
         else{
-            std::cout <<"Se detecto un tipo de modulo no registrado:"<< module_events_vector[i+2]  << std::endl;
+            std::cout <<"Unregistered Module:"<< module_events_vector[i+2]  << std::endl;
+            std::cout <<i << std::endl;
         }
     }
+    
 
     ifstream fp;
     
@@ -378,9 +412,13 @@ int main(int argc, char* argv[]) {
      cout << dontcare<< endl;
     // Use the readFame function to unapck
     arrayTest[0]->EvTree=EventTreeU;
+  
     while (EOF_MARKER == 0) {
     readFrame(&fp,bytes_counter,DATAFRAME_marker,EOF_MARKER,totalEvents,continue_frame_counter,EventTreeU,treeFileU,arrayTest,broken_event_count);
-        if(DATAFRAME_marker == 1){
+
+
+     
+    if(DATAFRAME_marker == 1){
             //VMMR8.PPP(EventTreeU);
             EventTreeU->Fill();
 }
@@ -391,8 +429,8 @@ int main(int argc, char* argv[]) {
     // Write our results
     /////////////////////////////////////////////////////////////////////
     arrayTest[0]->write(broken_event_count);
-    EventTreeU->Print();
-
+    //EventTreeU->Print();
+    
     EventTreeU->Write();
     treeFileU->Write();
     treeFileU->Close();
