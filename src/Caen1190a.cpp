@@ -36,13 +36,23 @@ class Caen1190a : public ModuleFather {
 
 public:
 
-int module;     
+int module;
+string nick; 
+string event;  
+
 Int_t Caen1190a_Multiplicity;
 Int_t Caen1190a_Channel[128];
 Int_t Caen1190a_Value[128];
 
-Caen1190a(int indexModule){
+TH1F *Caen1190a_1_histo;
+char Caen1190a_1_name[64], 
+Caen1190a_1_histo_name[64];
+
+Caen1190a(int indexModule, string Mote, string evet){
     module=indexModule;
+    nick=Mote;
+    event=evet;
+
     Caen1190a_Multiplicity=0;
 
     for (int i=0; i<128; i++) {
@@ -72,8 +82,7 @@ void readData(ifstream *f) override {
     if ((caen1190a_data_check == 0b00000) && ((caen1190a_data[0] + (caen1190a_data[1] << 8) + (caen1190a_data[2] << 16) + (caen1190a_data[3] << 24)) != 0)) 
     {
         unsigned char channel = ((caen1190a_data[2] + (caen1190a_data[3] << 8) ) >> 3) & 0b000001111111;
-        unsigned long value = (caen1190a_data[0]  + (caen1190a_data[1] << 8) 
-                              + (caen1190a_data[2] << 16) ) & 0b000001111111111111111111;
+        unsigned long value = (caen1190a_data[0]  + (caen1190a_data[1] << 8) + (caen1190a_data[2] << 16) ) & 0b000001111111111111111111;
                               
         Caen1190a_Channel[Caen1190a_Multiplicity] = channel;
         Caen1190a_Value[Caen1190a_Multiplicity] = value;
@@ -99,4 +108,37 @@ void read(ifstream *f, Int_t &broken_event_count) override {
     }
 }
 
+void write(Int_t &broken_event_count) override {
+
 }
+
+void createTree(TTree *EventTree) override{
+    int d=module;
+    
+    TString MultName = Form("Caen1190a_%i_Multiplicity", d ); TString MultNameI = Form("Caen1190a_%i_Multiplicity/I", d );// Generate a unique name for each histogram
+    TString MultChan = Form("Caen1190a_%i_Channels", d );     TString MultChanI = Form("Caen1190a_%i_Channels[Caen1190a_%i_Multiplicity]/I", d,d);
+    TString MultValu = Form("Caen1190a_%i_Values", d );       TString MultValuI = Form("Caen1190a_%i_Values[Caen1190a_%i_Multiplicity]/I", d,d );  
+    
+    EventTree->Branch(MultName, &Caen1190a_Multiplicity, MultNameI);
+    EventTree->Branch(MultChan,  Caen1190a_Channel,      MultChanI);
+    EventTree->Branch(MultValu,  Caen1190a_Value,        MultValuI);
+
+}
+
+void histoLOOP(TFile *treeFile,std::vector<TDirectory*>& refereciasFolders) override{
+    int d=module;
+
+    /*std::string eventName = "Event_" + event;
+    // Cambiar al directorio con el nombre del evento
+    treeFile->cd(eventName.c_str());*/
+
+    
+    
+    TDirectory *Caen1190a_1_dir = refereciasFolders[stoi(event)]->mkdir(Form("%s_%i",nick.c_str(), d));//treeFile->mkdir(Form("Caen785_%i", d));
+    /*
+    To be compleated
+    */
+ 
+}
+
+};

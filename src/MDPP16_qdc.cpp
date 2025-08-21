@@ -181,8 +181,8 @@ unsigned char mdpp16_qdc_data[4];
 
     }else if(mdpp16_qdc_data_check == 0b0100){
       unsigned int moduloID = (mdpp16_qdc_data[2]) & 0b11111111;
-      amplitud = (mdpp16_qdc_data[0] + (mdpp16_qdc_data[1] << 8) ) & 0b1111111111111111;
-     // cout<<"Header "<< moduloID<<endl;
+      amplitud = (mdpp16_qdc_data[0] + (mdpp16_qdc_data[1] << 8) ) & 0b0000001111111111;
+     // cout<<"Longitud  "<< amplitud<<endl;
 
     }
 
@@ -210,7 +210,7 @@ void read(ifstream *f, Int_t &broken_event_count) override {
 
     //f->read((char*) module_header, 4);
     //unsigned short module_header_length = (module_header[0] + (module_header[1] << 8) ) & 0b0000001111111111;
-    //cout << "module_event_length " << module_event_length <<endl;
+    //cout << "Longitud F5:  " << module_event_length<<" ";
     //cout << "Longitug Header " << module_header_length <<endl;
     //int longitud = (module_header[0] + (module_header[1] << 8) ) & 0b0000001111111111;
     //unsigned int moduloID = (module_header[2]) & 0b11111111;
@@ -228,7 +228,8 @@ void read(ifstream *f, Int_t &broken_event_count) override {
     
   }
     //longitudEventoAnterior = longitud;
-  } else {//if (module_event_length == 1) {//AQUI JAMAS ESTA ENTRANDO
+  }else if (module_event_length == 1) {
+  //else {//if (module_event_length == 1) {//AQUI JAMAS ESTA ENTRANDO
       unsigned char dontCare[4];
       f->read((char*) dontCare, 4);
       broken_event_count++;

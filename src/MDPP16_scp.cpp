@@ -67,12 +67,11 @@ char MDPP16_scp_name[32], MDPP16_scp_histo_name[32];
 
 int ctr=0;
 int contadorEntries=0;
-
 // Constructor de MyClass
 MDPP16_SCP (int indexModule, string Mote, string evet){
     module=indexModule;
     nick=Mote;
-    event=evet;              
+    event=evet;
 }
 // Initialize variables
 void initEvent() override {
@@ -229,7 +228,7 @@ void histoLOOP(TFile *treeFile,std::vector<TDirectory*>& refereciasFolders) over
       gDirectory->cd("..");
     }
   }
-    gDirectory->cd("..");
+  gDirectory->cd("..");
 }
 
 /**/
