@@ -55,6 +55,7 @@ char VMMR8_name[64], VMMR8_histo_name[64];
 
 std::shared_ptr<int> contRaul=std::make_shared<int>(0);;
 
+
 VMMR8(int indexModule, string Mote, string evet){
   module=indexModule;
   nick=Mote;
@@ -136,8 +137,12 @@ void read(ifstream *f, Int_t &broken_event_count) override {
   unsigned char block_read_header[4];
   f->read((char*) block_read_header, 4); // should be Type = 0xf5
   unsigned short module_event_length = (block_read_header[0] + (block_read_header[1] << 8) ) & 0b0001111111111111;
-    
+  int moduloID=(block_read_header[2])& 0b11111111;
+  //cout << "VMMR8 lenght " << module_event_length << endl;
+  acarreo= module_event_length+1;
+  
   if (module_event_length > 1) {
+    //cout << "Hola" <<endl;
     unsigned char module_header[4];
     f->read((char*) module_header, 4);
     for (int i=0; i < module_event_length-1; i++) {
