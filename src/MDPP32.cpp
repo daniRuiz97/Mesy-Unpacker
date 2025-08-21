@@ -50,11 +50,11 @@ string event;
 
 // Declare internal variables 
 Int_t   MDPP32_1_Multiplicity;
-Int_t   MDPP32_1_Channel[32*3];
-ULong_t MDPP32_1_Value[32*3];
+Int_t   MDPP32_1_Channel[32];
+ULong_t MDPP32_1_Value[32];
 Int_t   MDPP32_1_TDC_time_diff_mul;
-Int_t   MDPP32_1_TDC_time_diff_Channel[32*3];
-ULong_t MDPP32_1_TDC_time_diff_Value[32*3];
+Int_t   MDPP32_1_TDC_time_diff_Channel[32];
+ULong_t MDPP32_1_TDC_time_diff_Value[32];
 Int_t   MDPP32_1_Trigger_time_diff_mul;
 Int_t   MDPP32_1_Trigger_time_diff_Channel[32];
 ULong_t MDPP32_1_Trigger_time_diff_Value[32];
@@ -67,12 +67,13 @@ char MDPP32_1_name[64], MDPP32_1_histo_name[64];
 
 int ctr=0;
 int contadorEntries=0;
+
 // Constructor de MyClass
 MDPP32(int indexModule, string Mote, string evet){
     module=indexModule;
     nick=Mote;
     event=evet;
-
+    /*
     MDPP32_1_Multiplicity = 0;                  
     MDPP32_1_TDC_time_diff_mul = 0;              
     MDPP32_1_Trigger_time_diff_mul = 0;          
@@ -81,7 +82,7 @@ MDPP32(int indexModule, string Mote, string evet){
 
     for (int i=0; i<1024*3; i++) {
 
-        if (i<32*3){                                               
+        if (i<32){                                               
             MDPP32_1_Channel[i] = 0;                                    
             MDPP32_1_Value[i] = 0;                                     
             MDPP32_1_TDC_time_diff_Channel[i] = 0;    
@@ -93,7 +94,7 @@ MDPP32(int indexModule, string Mote, string evet){
             MDPP32_1_Trigger_time_diff_Value[i] = 0;     
         }
  
-    }
+    }*/
 }
 // Initialize variables
 void initEvent() override {
@@ -105,7 +106,7 @@ void initEvent() override {
 
     for (int i=0; i<1024*3; i++) {
 
-        if (i<32*3){                                               
+        if (i<32){                                               
             MDPP32_1_Channel[i] = 0;                                    
             MDPP32_1_Value[i] = 0;                                     
             MDPP32_1_TDC_time_diff_Channel[i] = 0;    
@@ -135,27 +136,27 @@ unsigned char mdpp32_scp_data[4];
       unsigned int channel = mdpp32_scp_data[2] & 0b01111111;
       unsigned long value = ( mdpp32_scp_data[0] + (mdpp32_scp_data[1] << 8) ) & 0b1111111111111111;
             
-      if ((channel >= 0) && (channel <= 31)){
+      if ((channel >= 0) && (channel <= 31) && (MDPP32_1_Multiplicity <=32)){
         // For the root branches
         MDPP32_1_Channel[MDPP32_1_Multiplicity] = channel;
         MDPP32_1_Value[MDPP32_1_Multiplicity] = value;
-        MDPP32_1_Multiplicity++;
+        MDPP32_1_Multiplicity++; 
         MDPP32_1_histo[channel] -> Fill(value);
-        if (MDPP32_1_Multiplicity > 32*3-1) { MDPP32_1_Multiplicity = 32*3-1; }
+        //if (MDPP32_1_Multiplicity > 32-1) { MDPP32_1_Multiplicity = 32-1; }
       }
-      if ((channel >= 32) && (channel < 64)){
+      if ((channel >= 32) && (channel < 64) && (MDPP32_1_TDC_time_diff_mul <=32)){
         // For the root branches
         MDPP32_1_TDC_time_diff_Channel[MDPP32_1_TDC_time_diff_mul] = channel - 32;
         MDPP32_1_TDC_time_diff_Value[MDPP32_1_TDC_time_diff_mul] = value;
         MDPP32_1_TDC_time_diff_mul++;
-        if (MDPP32_1_TDC_time_diff_mul > 32*3-1) { MDPP32_1_TDC_time_diff_mul = 32*3-1; }
+        //if (MDPP32_1_TDC_time_diff_mul > 32-1) { MDPP32_1_TDC_time_diff_mul = 32-1; }
       }
-      if((channel >= 64) && (channel < 66)){
+      if((channel >= 64) && (channel < 66) && (MDPP32_1_Trigger_time_diff_mul <=32)){
         // For the root branches
         MDPP32_1_Trigger_time_diff_Channel[MDPP32_1_Trigger_time_diff_mul] = channel-64;
         MDPP32_1_Trigger_time_diff_Value[MDPP32_1_Trigger_time_diff_mul] = value;
         MDPP32_1_Trigger_time_diff_mul++;
-        if (MDPP32_1_Trigger_time_diff_mul > 32-1) { MDPP32_1_Trigger_time_diff_mul = 32-1; }
+        //if (MDPP32_1_Trigger_time_diff_mul > 32-1) { MDPP32_1_Trigger_time_diff_mul = 32-1; }
       }
     } // != 0
   }
@@ -175,6 +176,9 @@ void read(ifstream *f, Int_t &broken_event_count) override {
   unsigned char block_read_header[4];
   f->read((char*) block_read_header, 4); // should be Type = 0xf5
   unsigned short module_event_length = (block_read_header[0] + (block_read_header[1] << 8) ) & 0b0001111111111111;
+  int moduloID=(block_read_header[2])& 0b11111111;
+  //cout << "MDPP32 Legnth" << module_event_length << endl;
+  acarreo= module_event_length+1;
     
   if (module_event_length > 1) {
     ctr=0;
@@ -196,20 +200,20 @@ void read(ifstream *f, Int_t &broken_event_count) override {
 void createTree(TTree *EventTree) override{
     int d=module;
                                                 
-    TString MultName = Form("MDPP32_%i_Multiplicity", d ); TString MultNameI = Form("MDPP32_%i_Multiplicity/I", d );// Generate a unique name for each histogram
-    TString MultChan = Form("MDPP32_%i_Channels", d );     TString MultChanI = Form("MDPP32_%i_Channels[MDPP32_%i_Multiplicity]/I", d,d);
-    TString MultValu = Form("MDPP32_%i_Values", d );       TString MultValuL = Form("MDPP32_%i_Values[MDPP32_%i_Multiplicity]/L", d,d );                                                                                                  
+    TString MultName = Form("MDPP32_SCP_%i_Multiplicity", d ); TString MultNameI = Form("MDPP32_SCP_%i_Multiplicity/I", d );// Generate a unique name for each histogram
+    TString MultChan = Form("MDPP32_SCP_%i_Channels", d );     TString MultChanI = Form("MDPP32_SCP_%i_Channels[MDPP32_SCP_%i_Multiplicity]/I", d,d);
+    TString MultValu = Form("MDPP32_SCP_%i_Values", d );       TString MultValuL = Form("MDPP32_SCP_%i_Values[MDPP32_SCP_%i_Multiplicity]/L", d,d );                                                                                                  
                                                                                     
-    TString TDCtimeDiffMul = Form("MDPP32_%i_TDC_time_diff_mul", d );      TString TDCtimeDiffMulI = Form("MDPP32_%i_TDC_time_diff_mul/I", d );// Generate a unique name for each histogram
-    TString TDCtimeDiffCha = Form("MDPP32_%i_TDC_time_diff_Channels", d ); TString TDCtimeDiffChaI = Form("MDPP32_%i_TDC_time_diff_Channels[MDPP32_%i_TDC_time_diff_mul]/I", d,d );
-    TString TDCtimeDiffVal = Form("MDPP32_%i_TDC_time_diff_Values", d );   TString TDCtimeDiffValL = Form("MDPP32_%i_TDC_time_diff_Values[MDPP32_%i_TDC_time_diff_mul]/L", d,d );
+    TString TDCtimeDiffMul = Form("MDPP32_SCP_%i_TDC_time_diff_mul", d );      TString TDCtimeDiffMulI = Form("MDPP32_SCP_%i_TDC_time_diff_mul/I", d );// Generate a unique name for each histogram
+    TString TDCtimeDiffCha = Form("MDPP32_SCP_%i_TDC_time_diff_Channels", d ); TString TDCtimeDiffChaI = Form("MDPP32_SCP_%i_TDC_time_diff_Channels[MDPP32_SCP_%i_TDC_time_diff_mul]/I", d,d );
+    TString TDCtimeDiffVal = Form("MDPP32_SCP_%i_TDC_time_diff_Values", d );   TString TDCtimeDiffValL = Form("MDPP32_SCP_%i_TDC_time_diff_Values[MDPP32_SCP_%i_TDC_time_diff_mul]/L", d,d );
     
-    TString TriggertimeDiffMul = Form("MDPP32_%i_Trigger_time_diff_mul", d );       TString TriggertimeDiffMulI  = Form("MDPP32_%i_Trigger_time_diff_mul/I", d );// Generate a unique name for each histogram
-    TString TriggertimeDiffCha = Form("MDPP32_%i_Trigger_time_diff_Channels", d );  TString TriggertimeDiffChaI  = Form("MDPP32_%i_Trigger_time_diff_Channels[MDPP32_%i_Trigger_time_diff_mul]/I", d,d );                                                    
-    TString TriggertimeDiffVal = Form("MDPP32_%i_Trigger_time_diff_Values", d );    TString TriggertimeDiffValL  = Form("MDPP32_%i_Trigger_time_diff_Values[MDPP32_%i_Trigger_time_diff_mul]/L", d,d );
+    TString TriggertimeDiffMul = Form("MDPP32_SCP_%i_Trigger_time_diff_mul", d );       TString TriggertimeDiffMulI  = Form("MDPP32_SCP_%i_Trigger_time_diff_mul/I", d );// Generate a unique name for each histogram
+    TString TriggertimeDiffCha = Form("MDPP32_SCP_%i_Trigger_time_diff_Channels", d );  TString TriggertimeDiffChaI  = Form("MDPP32_SCP_%i_Trigger_time_diff_Channels[MDPP32_SCP_%i_Trigger_time_diff_mul]/I", d,d );                                                    
+    TString TriggertimeDiffVal = Form("MDPP32_SCP_%i_Trigger_time_diff_Values", d );    TString TriggertimeDiffValL  = Form("MDPP32_SCP_%i_Trigger_time_diff_Values[MDPP32_SCP_%i_Trigger_time_diff_mul]/L", d,d );
     
-    TString ExtendedTimestamps = Form("MDPP32_%i_Extended_timestamps", d ); TString ExtendedTimestampsI  = Form("MDPP32_%i_Extended_timestamps/L", d );
-    TString EventTimestamps    = Form("MDPP32_%i_Event_timestamps", d );    TString EventTimestampsL     = Form("MDPP32_%i_Event_timestamps/L", d );
+    TString ExtendedTimestamps = Form("MDPP32_SCP_%i_Extended_timestamps", d ); TString ExtendedTimestampsI  = Form("MDPP32_SCP_%i_Extended_timestamps/L", d );
+    TString EventTimestamps    = Form("MDPP32_SCP_%i_Event_timestamps", d );    TString EventTimestampsL     = Form("MDPP32_SCP_%i_Event_timestamps/L", d );
     
 
     EventTree->Branch(MultName, &MDPP32_1_Multiplicity, MultNameI);
@@ -233,13 +237,13 @@ void createTree(TTree *EventTree) override{
 void histoLOOP(TFile *treeFile,std::vector<TDirectory*>& refereciasFolders) override{
     int d=module;
 
-    TDirectory *MDPP32_1_dir = refereciasFolders[stoi(event)]->mkdir(Form("%s_%i",nick.c_str(), d));//treeFile->mkdir(Form("MDPP32_%i", d));
+    TDirectory *MDPP32_1_dir = refereciasFolders[stoi(event)]->mkdir(Form("%s_%i",nick.c_str(), d));//treeFile->mkdir(Form("MDPP32_SCP_%i", d));
     
     for (Int_t i=0; i<1024; i++) {
     if (i<32) {
       MDPP32_1_dir->cd();
-      snprintf(MDPP32_1_name, sizeof(MDPP32_1_name), "MDPP32_%i_%i",d,i);
-      snprintf(MDPP32_1_histo_name, sizeof(MDPP32_1_histo_name), "MDPP32_%i_%i ; Channel ; Counts",d,i);
+      snprintf(MDPP32_1_name, sizeof(MDPP32_1_name), "MDPP32_SCP_%i_%i",d,i);
+      snprintf(MDPP32_1_histo_name, sizeof(MDPP32_1_histo_name), "MDPP32_SCP_%i_%i ; Channel ; Counts",d,i);
       MDPP32_1_histo[i] = new TH1F(MDPP32_1_name, MDPP32_1_histo_name, 65536, 0, 65536);
       gDirectory->cd("..");
     }
