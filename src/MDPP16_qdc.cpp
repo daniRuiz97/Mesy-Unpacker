@@ -66,8 +66,8 @@ int overCont =0;
 int saltador = 0;
 unsigned int amplitud=0;
 
-//TH1F *MDPP16_1_ilong_histo[16], *MDPP16_1_ishort_histo[16];
-TH1D *MDPP16_1_ilong_histo[16], *MDPP16_1_ishort_histo[16];
+TH1F *MDPP16_1_ilong_histo[16], *MDPP16_1_ishort_histo[16];
+//TH1D *MDPP16_1_ilong_histo[16], *MDPP16_1_ishort_histo[16];
 char MDPP16_1_ilong_name[64], MDPP16_1_ilong_histo_name[64];
 char MDPP16_1_ishort_name[64], MDPP16_1_ishort_histo_name[64];
 
@@ -109,7 +109,7 @@ void initEvent() override {
 void readData(ifstream *f) override {
 unsigned char mdpp16_qdc_data[4];
   f->read((char*) mdpp16_qdc_data, 4);
-    
+  
   unsigned char mdpp16_qdc_data_check = (mdpp16_qdc_data[3] >> 4) & 0b1111;
 
   if (mdpp16_qdc_data_check == 0b0001) {
@@ -120,7 +120,7 @@ unsigned char mdpp16_qdc_data[4];
       unsigned long value = ( mdpp16_qdc_data[0] + (mdpp16_qdc_data[1] << 8) ) & 0b1111111111111111;
       unsigned int overflow = (mdpp16_qdc_data[2] >> 6) & 0b01;
     
-      
+      //cout<<"canal " << channel<< " ,valor: "<< value<<endl;
       //if (triggerChannel==0){
        // saltador+=1;
         //if(saltador%1000==0){
@@ -139,7 +139,7 @@ unsigned char mdpp16_qdc_data[4];
         MDPP16_1_ilong_Multiplicity++;
        
         //MDPP16_1_ilong_histo[channel] -> Fill(value);
-        //cout<<"canal " << channel<< " ,valor: "<< value<<endl;
+        
 
         if (channel ==0){
           contadorChannel0+=1;
@@ -182,7 +182,7 @@ unsigned char mdpp16_qdc_data[4];
     }else if(mdpp16_qdc_data_check == 0b0100){
       unsigned int moduloID = (mdpp16_qdc_data[2]) & 0b11111111;
       amplitud = (mdpp16_qdc_data[0] + (mdpp16_qdc_data[1] << 8) ) & 0b0000001111111111;
-     // cout<<"Longitud  "<< amplitud<<endl;
+      //cout<<"Longitud  "<< amplitud<<endl;
 
     }
 
@@ -204,7 +204,9 @@ void read(ifstream *f, Int_t &broken_event_count) override {
   unsigned char block_read_header[4];
   f->read((char*) block_read_header, 4); // shoulds be Type = 0xf5
   unsigned short module_event_length = (block_read_header[0] + (block_read_header[1] << 8) ) & 0b0001111111111111;
-    
+
+
+  acarreo= module_event_length+1;
   if (module_event_length > 1) {
     unsigned char module_header[4];
 
@@ -325,14 +327,14 @@ void histoLOOP(TFile *treeFile,std::vector<TDirectory*>& refereciasFolders) over
         MDPP16_1_ilong_dir->cd();
         snprintf(MDPP16_1_ilong_name, sizeof(MDPP16_1_ilong_name), "MDPP16_QDC_%i_ilong_%i",d,i);
         snprintf(MDPP16_1_ilong_histo_name, sizeof(MDPP16_1_ilong_histo_name), "MDPP16_QDC_%i_ilong_%i ; Channel ; Counts",d,i);
-        MDPP16_1_ilong_histo[i] = new TH1D(MDPP16_1_ilong_name, MDPP16_1_ilong_histo_name, 4096, 0, 65536);
+        MDPP16_1_ilong_histo[i] = new TH1F(MDPP16_1_ilong_name, MDPP16_1_ilong_histo_name, 4096, 0, 65536);
         gDirectory->cd("..");
     
        
         MDPP16_1_ishort_dir->cd();
         snprintf(MDPP16_1_ishort_name, sizeof(MDPP16_1_ishort_name), "MDPP16_QDC_%i_ishort_%i",d,i);
         snprintf(MDPP16_1_ishort_histo_name, sizeof(MDPP16_1_ishort_histo_name), "MDPP16_QDC_%i_ishort_%i ; Channel ; Counts",d,i);
-        MDPP16_1_ishort_histo[i] = new TH1D(MDPP16_1_ishort_name, MDPP16_1_ishort_histo_name, 4096, 0, 65536);
+        MDPP16_1_ishort_histo[i] = new TH1F(MDPP16_1_ishort_name, MDPP16_1_ishort_histo_name, 4096, 0, 65536);
         gDirectory->cd("..");
         }
     }
@@ -341,3 +343,4 @@ void histoLOOP(TFile *treeFile,std::vector<TDirectory*>& refereciasFolders) over
     
    }
 };
+
