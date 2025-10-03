@@ -40,18 +40,21 @@ string nick;
 string event;
 
 // Declare internal variables 
+static const int   VMMR8_max_ch=126; //Each card has 126 ch Max
+static const int   VMMR8_max_bus=16;  //Each card has 16 bus Max
+static const int   VMMR8_max_mult=VMMR8_max_bus*VMMR8_max_ch;
 Int_t   VMMR8_Multiplicity;
-Int_t   VMMR8_Channel[64];
-ULong_t VMMR_Value[64];
+Int_t   VMMR8_Channel[VMMR8_max_mult];
+ULong_t VMMR_Value[VMMR8_max_mult];
 Int_t   VMMR8_time_diff_mul;
-Int_t   VMMR8_Time_diff_bus[64];
-ULong_t VMMR8_Time_diff_value[64];
+Int_t   VMMR8_Time_diff_bus[VMMR8_max_mult];
+ULong_t VMMR8_Time_diff_value[VMMR8_max_mult];
 ULong_t VMMR8_Extended_timestamp;
 ULong_t VMMR8_Event_timestamp;
 
-TH1F* VMMR8_histo[16][64];
+TH1F* VMMR8_histo[VMMR8_max_bus][VMMR8_max_mult];
 
-char VMMR8_name[64], VMMR8_histo_name[64];
+char VMMR8_name[VMMR8_max_mult], VMMR8_histo_name[VMMR8_max_mult];
 
 std::shared_ptr<int> contRaul=std::make_shared<int>(0);;
 
@@ -70,7 +73,7 @@ void initEvent() override {
   VMMR8_Event_timestamp = 0;
   
 
-  for (int i=0; i<64; i++) {
+  for (int i=0; i<VMMR8_max_mult; i++) {
     VMMR_Value[i] = 0;
     VMMR8_Time_diff_bus[i] = 0;
     VMMR8_Time_diff_value[i] = 0;
@@ -91,9 +94,8 @@ void readData(ifstream *f) override {
       unsigned long channel = (vmmr8_data[1] >> 4) + (vmmr8_data[2] << 4); // Channel number
       unsigned long value = ( vmmr8_data[0] + (vmmr8_data[1] << 8) ) & 0b0000111111111111; // Value in the channel
       Int_t bus = vmmr8_data[3] & 0b00001111; // Bus (optical link) number
-      
             
-      if ((channel >=0) && (channel <= 63) && (0 <= bus ) && (bus <= 8) && (VMMR8_Multiplicity< 64)  ){
+      if ((channel >=0) && (channel <= VMMR8_max_mult) && (0 <= bus ) && (bus <= VMMR8_max_bus) && (VMMR8_Multiplicity< VMMR8_max_mult)  ){
         // For the root branches
         VMMR8_Channel[VMMR8_Multiplicity] = channel;
         VMMR_Value[VMMR8_Multiplicity] = value;
@@ -101,6 +103,8 @@ void readData(ifstream *f) override {
         
         // Control histogram
         VMMR8_histo[bus][channel]->Fill(value);
+        //if(1 == bus){ cout << "Holaa bus: "<< bus <<endl;}
+        //cout << "Holaa bus 2: "<< bus <<endl;
         VMMR8_Multiplicity++;
 
         
@@ -114,7 +118,7 @@ void readData(ifstream *f) override {
     unsigned int bus = vmmr8_data[3] & 0b00001111;
     unsigned long value = ( vmmr8_data[0] + (vmmr8_data[1] << 8) ) & 0b1111111111111111;
     
-    if ((bus >= 0) && (bus < 16)){
+    if ((bus >= 0) && (bus < VMMR8_max_bus)){
     VMMR8_time_diff_mul++;
     if (VMMR8_time_diff_mul > 16*3-1) {VMMR8_time_diff_mul = 16*3-1;}
     }
@@ -195,14 +199,14 @@ void histoLOOP(TFile *treeFile,std::vector<TDirectory*>& refereciasFolders) over
   int d=module;
   TDirectory *VMMR8_dir = refereciasFolders[stoi(event)]->mkdir(Form("%s_%i",nick.c_str(),d));
   /**/
-  TDirectory *bus_dirs[16];
-  for (int i = 0; i < 16; i++) {
+  TDirectory *bus_dirs[VMMR8_max_bus];
+  for (int i = 0; i < VMMR8_max_bus; i++) {
     bus_dirs[i]=VMMR8_dir->mkdir(Form("bus_%d", i));
   }
-  for (Int_t i=0; i<16; i++) {
+  for (Int_t i=0; i<VMMR8_max_bus; i++) {
     VMMR8_dir->cd();
     bus_dirs[i]->cd();
-    for (Int_t j=0; j<64; j++) {
+    for (Int_t j=0; j<VMMR8_max_mult; j++) {
       snprintf(VMMR8_name,sizeof(VMMR8_name),"VMMR_%i",j);
       snprintf(VMMR8_histo_name, sizeof(VMMR8_histo_name),"VMMR_%i ; Channel ; Counts",j);
       VMMR8_histo[i][j] = new TH1F(VMMR8_name, VMMR8_histo_name, 4096, 0, 4096);
